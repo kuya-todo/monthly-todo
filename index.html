@@ -109,7 +109,7 @@ b.style.left=(p.sc*100/7+4)+'%';b.style.width=(p.ec-p.sc+1)*100/7+'%';b.style.to
 let l=document.createElement('span');l.className='label';l.textContent=p.s?p.t.title:'';b.appendChild(l);
 b.onclick=e=>{e.stopPropagation();open(p.t)};bs.appendChild(b)
 });
-wk.appendChild(bs);wk.style.minHeight=(116+Math.max(0,lanes.length-1)*27)+'px';weeks.appendChild(wk)
+wk.appendChild(bs);let wh=116+Math.max(0,lanes.length-1)*27;wk.style.minHeight=wh+'px';ds.style.height=wh+'px';weeks.appendChild(wk)
 }}
 function open(t,selected){
 let edit=!!t,base=selected||(t?t.start:key(view.getFullYear(),view.getMonth(),1));
