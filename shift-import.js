@@ -1,21 +1,38 @@
 // Monthly Todo - シフト表画像インポート
-// ボタン表示を独立させ、写真から自分の行のシフトを読み取る
+// v4.0
+// 写真全体をOCRせず、指定した行だけを読み取る方式
 
 (function () {
   "use strict";
 
-  const VERSION = "3.0";
-  const SHIFT_CODES = ["A", "B", "C1", "D", "E", "H", "週", "振", "出", "勤", "休"];
+  const VERSION = "4.0";
 
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
+  const SHIFT_CODES = [
+    "A",
+    "B",
+    "C1",
+    "D",
+    "E",
+    "H",
+    "週",
+    "振",
+    "出",
+    "勤",
+    "休"
+  ];
+
+  const OCR_CODES = [
+    "A",
+    "B",
+    "C1",
+    "D",
+    "E",
+    "H"
+  ];
+
+  // --------------------------------------------------
+  // 共通
+  // --------------------------------------------------
 
   function pad(n) {
     return String(n).padStart(2, "0");
@@ -25,51 +42,127 @@
     return `${y}-${pad(m)}-${pad(d)}`;
   }
 
+  function daysInMonth(year, month) {
+    return new Date(year, month, 0).getDate();
+  }
+
   function currentMonth() {
     const el = document.getElementById("month");
-    const m = el && el.textContent.match(/(\d{4})年\s*(\d{1,2})月/);
-    if (m) return { year: Number(m[1]), month: Number(m[2]) };
+
+    if (el) {
+      const m = el.textContent.match(
+        /(\d{4})年\s*(\d{1,2})月/
+      );
+
+      if (m) {
+        return {
+          year: Number(m[1]),
+          month: Number(m[2])
+        };
+      }
+    }
 
     const now = new Date();
+
     return {
       year: now.getFullYear(),
       month: now.getMonth() + 1
     };
   }
 
-  function normalizeText(s) {
-    return String(s || "").replace(/[\s|｜]/g, "").trim();
+  function normalizeText(text) {
+    return String(text || "")
+      .replace(/\s/g, "")
+      .trim();
   }
 
-  function normalizeShift(s) {
-    const x = normalizeText(s).replace(/[。、．.,]/g, "");
+  function normalizeShift(text) {
+    let x = normalizeText(text);
 
-    if (["CI", "Cl", "CL", "c1"].includes(x)) {
+    x = x
+      .replace(/[。、．.,]/g, "")
+      .replace(/[^A-Za-z0-9C1]/g, "");
+
+    x = x.toUpperCase();
+
+    if (
+      x === "CI" ||
+      x === "CL" ||
+      x === "C1" ||
+      x === "C"
+    ) {
       return "C1";
     }
 
-    return SHIFT_CODES.includes(x) ? x : "";
+    if (OCR_CODES.includes(x)) {
+      return x;
+    }
+
+    return "";
   }
 
   function showMessage(title, message) {
     alert(title + "\n\n" + message);
   }
 
-  // ==============================
+  // --------------------------------------------------
+  // Tesseract読み込み
+  // --------------------------------------------------
+
+  function loadTesseract() {
+    return new Promise((resolve, reject) => {
+
+      if (window.Tesseract) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement("script");
+
+      script.src =
+        "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+
+      script.onload = () => resolve();
+
+      script.onerror = () =>
+        reject(
+          new Error(
+            "Tesseract.jsを読み込めませんでした"
+          )
+        );
+
+      document.head.appendChild(script);
+    });
+  }
+
+  // --------------------------------------------------
   // 読み込みボタン
-  // ==============================
+  // --------------------------------------------------
 
   function addImportButton() {
-    let btn = document.getElementById("shiftImportButton");
 
-    if (btn && btn.dataset.bound === VERSION) {
+    let btn =
+      document.getElementById(
+        "shiftImportButton"
+      );
+
+    if (
+      btn &&
+      btn.dataset.bound === VERSION
+    ) {
       return;
     }
 
     if (!btn) {
-      btn = document.createElement("button");
-      btn.id = "shiftImportButton";
-      btn.textContent = "📷 シフト表を読み込む";
+
+      btn =
+        document.createElement("button");
+
+      btn.id =
+        "shiftImportButton";
+
+      btn.textContent =
+        "📷 シフト表を読み込む";
 
       btn.style.cssText = `
         display:block;
@@ -82,208 +175,234 @@
         color:#403b36;
         font-size:16px;
         font-weight:700;
+        box-sizing:border-box;
       `;
     }
 
-    const input = document.createElement("input");
+    const input =
+      document.createElement("input");
+
     input.type = "file";
     input.accept = "image/*";
     input.style.display = "none";
 
-    btn.onclick = () => input.click();
+    btn.onclick = () => {
+      input.click();
+    };
 
     input.onchange = async () => {
-      if (!input.files || !input.files[0]) return;
 
-      const file = input.files[0];
+      if (
+        !input.files ||
+        !input.files[0]
+      ) {
+        return;
+      }
+
+      const file =
+        input.files[0];
 
       btn.disabled = true;
-      btn.textContent = "📖 シフト表を読み取っています…";
+
+      btn.textContent =
+        "📖 読み込み準備中…";
 
       try {
-        if (!window.Tesseract) {
-          await loadScript(
-            "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
-          );
-        }
 
-        const m = currentMonth();
+        const m =
+          currentMonth();
 
-        const settings = await showSettings(m);
+        const settings =
+          await showSettings(m);
 
         if (!settings) {
           return;
         }
 
-        btn.textContent = "📖 写真を解析しています…";
-
-        const result = await readShiftImage(
+        await showRowPicker(
           file,
-          settings.name
-        );
-
-        if (!result.length) {
-          showMessage(
-            "シフトを見つけられませんでした",
-            "指定した名前の行を確認できませんでした。\n\n" +
-            "・写真全体が入っているか\n" +
-            "・文字がぼやけていないか\n" +
-            "・シフト表の名前が読めるか\n\n" +
-            "を確認して、もう一度試してください。"
-          );
-
-          return;
-        }
-
-        showShiftResult(
-          result,
-          settings.year,
-          settings.month
+          settings,
+          btn
         );
 
       } catch (e) {
+
         console.error(e);
 
         showMessage(
           "読み取りエラー",
-          "シフト表を読み取れませんでした。\n\n" +
-          "もう一度写真を選んで試してください。"
+          "写真を読み取れませんでした。\n\n" +
+          "もう一度試してください。"
         );
 
       } finally {
+
         btn.disabled = false;
-        btn.textContent = "📷 シフト表を読み込む";
+
+        btn.textContent =
+          "📷 シフト表を読み込む";
+
         input.value = "";
       }
     };
 
-    const slot = document.getElementById("shift-import-slot");
-    const app = document.querySelector(".app");
-    const calendar = document.querySelector(".calendar");
+    const slot =
+      document.getElementById(
+        "shift-import-slot"
+      );
+
+    const app =
+      document.querySelector(".app");
+
+    const calendar =
+      document.querySelector(".calendar");
 
     if (slot) {
+
       slot.innerHTML = "";
+
       slot.appendChild(btn);
       slot.appendChild(input);
 
     } else if (app && calendar) {
-      app.insertBefore(btn, calendar);
-      app.insertBefore(input, calendar);
+
+      app.insertBefore(
+        btn,
+        calendar
+      );
+
+      app.insertBefore(
+        input,
+        calendar
+      );
 
     } else {
+
       document.body.appendChild(btn);
       document.body.appendChild(input);
     }
 
-    btn.dataset.bound = VERSION;
+    btn.dataset.bound =
+      VERSION;
   }
 
-  // ==============================
+  // --------------------------------------------------
   // 設定
-  // ==============================
+  // --------------------------------------------------
 
   function showSettings(m) {
+
     return new Promise(resolve => {
 
-      const bg = document.createElement("div");
+      const bg =
+        document.createElement("div");
 
-      bg.style.cssText =
-        "position:fixed;inset:0;background:#0006;z-index:9999;" +
-        "display:flex;align-items:center;justify-content:center;padding:15px;";
+      bg.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:#0006;
+        z-index:9999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:15px;
+      `;
 
-      const box = document.createElement("div");
+      const box =
+        document.createElement("div");
 
-      box.style.cssText =
-        "background:#fffefa;width:min(430px,100%);" +
-        "border-radius:15px;padding:20px;" +
-        "box-shadow:0 12px 40px #0004;";
+      box.style.cssText = `
+        background:#fffefa;
+        width:min(430px,100%);
+        border-radius:15px;
+        padding:20px;
+        box-shadow:0 12px 40px #0004;
+      `;
 
       box.innerHTML = `
-        <h2 style="margin:0 0 15px">
+
+        <h2 style="
+          margin:0 0 15px;
+          font-size:20px
+        ">
           シフト表を読み込む
         </h2>
 
-        <p style="font-size:13px;color:#777;line-height:1.6">
-          写真の中から、あなたの行を探して読み取ります。
+        <p style="
+          font-size:13px;
+          color:#777;
+          line-height:1.7
+        ">
+          写真を選んだあと、
+          自分の行をタップして読み取ります。
         </p>
 
-        <label style="display:block;font-size:12px;color:#777;margin-bottom:5px">
-          シフト表の名前
+        <label style="
+          display:block;
+          font-size:12px;
+          color:#777;
+          margin-bottom:5px
+        ">
+          対象年月
         </label>
 
-        <input
-          id="shiftRowName"
-          type="text"
-          value="久山"
-          placeholder="例：久山"
-          style="
-            width:100%;
-            height:44px;
-            border:1px solid #d0c8be;
-            border-radius:8px;
-            padding:8px 10px;
-            font-size:16px;
-            box-sizing:border-box
-          "
-        >
+        <div style="
+          display:flex;
+          gap:7px
+        ">
 
-        <div style="margin-top:15px">
+          <input
+            id="shiftYear"
+            type="number"
+            value="${m.year}"
+            style="
+              width:50%;
+              height:44px;
+              border:1px solid #d0c8be;
+              border-radius:8px;
+              padding:8px;
+              font-size:16px;
+              box-sizing:border-box
+            "
+          >
 
-          <label style="display:block;font-size:12px;color:#777;margin-bottom:5px">
-            対象年月
-          </label>
-
-          <div style="display:flex;gap:7px">
-
-            <input
-              id="shiftYear"
-              type="number"
-              value="${m.year}"
-              style="
-                width:50%;
-                height:44px;
-                border:1px solid #d0c8be;
-                border-radius:8px;
-                padding:8px;
-                font-size:16px;
-                box-sizing:border-box
-              "
-            >
-
-            <input
-              id="shiftMonth"
-              type="number"
-              min="1"
-              max="12"
-              value="${m.month}"
-              style="
-                width:50%;
-                height:44px;
-                border:1px solid #d0c8be;
-                border-radius:8px;
-                padding:8px;
-                font-size:16px;
-                box-sizing:border-box
-              "
-            >
-
-          </div>
+          <input
+            id="shiftMonth"
+            type="number"
+            min="1"
+            max="12"
+            value="${m.month}"
+            style="
+              width:50%;
+              height:44px;
+              border:1px solid #d0c8be;
+              border-radius:8px;
+              padding:8px;
+              font-size:16px;
+              box-sizing:border-box
+            "
+          >
 
         </div>
 
-        <p style="
-          margin:15px 0 0;
-          padding:10px;
+        <div style="
+          margin-top:15px;
+          padding:11px;
           background:#f4f1eb;
           border-radius:8px;
           font-size:12px;
           line-height:1.6
         ">
-          💡 今回のシフト表なら
-          「久山」、年月は「2026年9月」でOKです。
-        </p>
+          💡 今回の写真なら<br>
+          <strong>2026年9月</strong>
+          のままでOKです。
+        </div>
 
-        <div style="display:flex;gap:8px;margin-top:16px">
+        <div style="
+          display:flex;
+          gap:8px;
+          margin-top:16px
+        ">
 
           <button
             id="shiftSettingCancel"
@@ -310,21 +429,25 @@
               font-weight:600
             "
           >
-            読み取り開始
+            写真を選ぶ
           </button>
 
         </div>
       `;
 
       bg.appendChild(box);
+
       document.body.appendChild(bg);
 
-      const close = () => bg.remove();
+      const close = () =>
+        bg.remove();
 
       box.querySelector(
         "#shiftSettingCancel"
       ).onclick = () => {
+
         close();
+
         resolve(null);
       };
 
@@ -332,28 +455,36 @@
         "#shiftSettingOK"
       ).onclick = () => {
 
-        const name =
-          box.querySelector("#shiftRowName").value.trim();
-
         const year =
           Number(
-            box.querySelector("#shiftYear").value
+            box.querySelector(
+              "#shiftYear"
+            ).value
           );
 
         const month =
           Number(
-            box.querySelector("#shiftMonth").value
+            box.querySelector(
+              "#shiftMonth"
+            ).value
           );
 
-        if (!name || !year || month < 1 || month > 12) {
-          alert("名前と年月を確認してください。");
+        if (
+          !year ||
+          month < 1 ||
+          month > 12
+        ) {
+
+          alert(
+            "年月を確認してください。"
+          );
+
           return;
         }
 
         close();
 
         resolve({
-          name,
           year,
           month
         });
@@ -361,367 +492,692 @@
     });
   }
 
-  // ==============================
-  // 画像読み込み
-  // ==============================
+  // --------------------------------------------------
+  // 画像
+  // --------------------------------------------------
 
   function loadImage(file) {
-    return new Promise((resolve, reject) => {
 
-      const img = new Image();
+    return new Promise(
+      (resolve, reject) => {
 
-      img.onload = () => resolve(img);
-      img.onerror = reject;
+        const img =
+          new Image();
 
-      img.src = URL.createObjectURL(file);
+        const url =
+          URL.createObjectURL(file);
+
+        img.onload = () => {
+
+          URL.revokeObjectURL(url);
+
+          resolve(img);
+        };
+
+        img.onerror = reject;
+
+        img.src = url;
+      }
+    );
+  }
+
+  // --------------------------------------------------
+  // 行を選択
+  // --------------------------------------------------
+
+  async function showRowPicker(
+    file,
+    settings,
+    btn
+  ) {
+
+    const image =
+      await loadImage(file);
+
+    return new Promise(resolve => {
+
+      const bg =
+        document.createElement("div");
+
+      bg.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:#0008;
+        z-index:9999;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        padding:12px;
+      `;
+
+      const box =
+        document.createElement("div");
+
+      box.style.cssText = `
+        background:#fffefa;
+        width:min(760px,100%);
+        max-height:94vh;
+        overflow:auto;
+        border-radius:15px;
+        padding:15px;
+        box-shadow:0 12px 40px #0005;
+      `;
+
+      box.innerHTML = `
+
+        <h2 style="
+          margin:0 0 8px;
+          font-size:19px
+        ">
+          自分の行をタップ
+        </h2>
+
+        <p style="
+          margin:0 0 12px;
+          font-size:13px;
+          color:#777;
+          line-height:1.6
+        ">
+          写真の中の
+          <strong>「久山」さんの行</strong>
+          の中央あたりをタップしてください。
+        </p>
+
+        <div
+          id="shiftPhotoArea"
+          style="
+            position:relative;
+            width:100%;
+            overflow:auto;
+            background:#eee;
+            border-radius:8px;
+            touch-action:manipulation;
+          "
+        >
+          <img
+            id="shiftPhoto"
+            style="
+              display:block;
+              width:100%;
+              height:auto;
+              user-select:none;
+              -webkit-user-select:none;
+            "
+          >
+
+          <div
+            id="rowGuide"
+            style="
+              display:none;
+              position:absolute;
+              left:0;
+              right:0;
+              height:4px;
+              background:#e45b5b;
+              box-shadow:0 0 0 2px #fff8;
+              pointer-events:none;
+            "
+          ></div>
+        </div>
+
+        <div style="
+          margin-top:10px;
+          padding:10px;
+          background:#f4f1eb;
+          border-radius:8px;
+          font-size:12px;
+          line-height:1.6
+        ">
+          📌 赤い線が
+          <strong>自分のシフト行</strong>
+          の位置です。
+        </div>
+
+        <div style="
+          display:flex;
+          gap:8px;
+          margin-top:12px
+        ">
+
+          <button
+            id="rowCancel"
+            style="
+              flex:1;
+              min-height:42px;
+              border:1px solid #d0c8be;
+              background:white;
+              border-radius:8px
+            "
+          >
+            キャンセル
+          </button>
+
+          <button
+            id="rowRead"
+            disabled
+            style="
+              flex:1;
+              min-height:42px;
+              border:0;
+              background:#626960;
+              color:white;
+              border-radius:8px;
+              font-weight:600;
+              opacity:.45
+            "
+          >
+            この行を読み取る
+          </button>
+
+        </div>
+      `;
+
+      bg.appendChild(box);
+
+      document.body.appendChild(bg);
+
+      const photo =
+        box.querySelector(
+          "#shiftPhoto"
+        );
+
+      const guide =
+        box.querySelector(
+          "#rowGuide"
+        );
+
+      const readButton =
+        box.querySelector(
+          "#rowRead"
+        );
+
+      let selectedY = null;
+
+      photo.src =
+        URL.createObjectURL(file);
+
+      photo.onclick = event => {
+
+        const rect =
+          photo.getBoundingClientRect();
+
+        const ratio =
+          image.naturalHeight /
+          rect.height;
+
+        selectedY =
+          (event.clientY -
+            rect.top) *
+          ratio;
+
+        guide.style.display =
+          "block";
+
+        guide.style.top =
+          (
+            selectedY /
+            image.naturalHeight *
+            100
+          ) + "%";
+
+        readButton.disabled =
+          false;
+
+        readButton.style.opacity =
+          "1";
+      };
+
+      box.querySelector(
+        "#rowCancel"
+      ).onclick = () => {
+
+        bg.remove();
+
+        resolve();
+      };
+
+      readButton.onclick = async () => {
+
+        if (selectedY == null) {
+          return;
+        }
+
+        readButton.disabled =
+          true;
+
+        readButton.textContent =
+          "📖 読み取っています…";
+
+        try {
+
+          const result =
+            await readSelectedRow(
+              image,
+              selectedY,
+              settings.year,
+              settings.month,
+              btn
+            );
+
+          bg.remove();
+
+          showShiftResult(
+            result,
+            settings.year,
+            settings.month
+          );
+
+        } catch (e) {
+
+          console.error(e);
+
+          alert(
+            "シフト行を読み取れませんでした。\n\n" +
+            "もう一度、行の中央をタップして試してください。"
+          );
+
+          readButton.disabled =
+            false;
+
+          readButton.textContent =
+            "この行を読み取る";
+        }
+
+        resolve();
+      };
     });
   }
 
-  // ==============================
-  // OCR
-  // ==============================
+  // --------------------------------------------------
+  // セル画像を作る
+  // --------------------------------------------------
 
-  async function readShiftImage(file, rowName) {
+  function makeCellCanvas(
+    image,
+    x,
+    y,
+    width,
+    height
+  ) {
 
-    const image = await loadImage(file);
+    const scale = 3;
 
-    const scale = 2;
+    const canvas =
+      document.createElement(
+        "canvas"
+      );
 
-    const canvas = document.createElement("canvas");
+    canvas.width =
+      Math.max(
+        20,
+        Math.round(
+          width * scale
+        )
+      );
 
-    canvas.width = image.width * scale;
-    canvas.height = image.height * scale;
+    canvas.height =
+      Math.max(
+        20,
+        Math.round(
+          height * scale
+        )
+      );
 
-    const ctx = canvas.getContext("2d");
+    const ctx =
+      canvas.getContext(
+        "2d",
+        { willReadFrequently:true }
+      );
 
-    ctx.drawImage(
-      image,
+    ctx.fillStyle =
+      "#ffffff";
+
+    ctx.fillRect(
       0,
       0,
       canvas.width,
       canvas.height
     );
 
-    const ocr = await Tesseract.recognize(
-      canvas,
-      "jpn+eng",
-      {
-        logger: m =>
-          console.log(
-            "OCR",
-            m.status,
-            Math.round(
-              (m.progress || 0) * 100
-            ) + "%"
-          )
-      }
+    ctx.drawImage(
+      image,
+      x,
+      y,
+      width,
+      height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
     );
 
-    const words =
-      ocr.data && ocr.data.words
-        ? ocr.data.words
-        : [];
-
-    const lines =
-      ocr.data && ocr.data.lines
-        ? ocr.data.lines
-        : [];
-
-    if (!words.length) {
-      return [];
-    }
-
-    const w = canvas.width;
-    const h = canvas.height;
-
-    const wanted = normalizeText(rowName);
-
-    let rowY = null;
-
-    // 名前が含まれる行を探す
-    const line = lines.find(
-      l =>
-        normalizeText(l.text).includes(wanted)
-    );
-
-    if (line) {
-      rowY =
-        (line.bbox.y0 + line.bbox.y1) / 2;
-    }
-
-    // 行として見つからなかった場合
-    // 左側30%から名前を探す
-    if (rowY == null) {
-
-      const candidates = words.filter(
-        x =>
-          normalizeText(x.text).includes(wanted) &&
-          x.bbox.x0 < w * 0.30
+    // コントラストを少し上げる
+    const data =
+      ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
       );
 
-      if (candidates.length) {
+    for (
+      let i = 0;
+      i < data.data.length;
+      i += 4
+    ) {
 
-        rowY =
-          (candidates[0].bbox.y0 +
-            candidates[0].bbox.y1) / 2;
-      }
+      const r =
+        data.data[i];
+
+      const g =
+        data.data[i + 1];
+
+      const b =
+        data.data[i + 2];
+
+      const gray =
+        0.299 * r +
+        0.587 * g +
+        0.114 * b;
+
+      const v =
+        gray < 175
+          ? 0
+          : 255;
+
+      data.data[i] =
+        v;
+
+      data.data[i + 1] =
+        v;
+
+      data.data[i + 2] =
+        v;
     }
 
-    if (rowY == null) {
-      return [];
-    }
+    ctx.putImageData(
+      data,
+      0,
+      0
+    );
 
-    // 名前と同じ高さにある文字だけ取得
-    const rowWords = words.filter(word => {
+    return canvas;
+  }
 
-      const y =
-        (word.bbox.y0 + word.bbox.y1) / 2;
+  // --------------------------------------------------
+  // OCR 1セル
+  // --------------------------------------------------
 
-      return Math.abs(y - rowY) < h * 0.035;
-    });
+  async function recognizeCell(
+    worker,
+    canvas
+  ) {
 
-    // 日付の位置を取得
-    let datePositions = words
-      .filter(word => {
+    const timeout =
+      new Promise(
+        (_, reject) => {
 
-        const n =
-          Number(
-            normalizeText(word.text)
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "OCR timeout"
+                )
+              ),
+            8000
           );
-
-        const y =
-          (word.bbox.y0 + word.bbox.y1) / 2;
-
-        return (
-          Number.isInteger(n) &&
-          n >= 1 &&
-          n <= 31 &&
-          y < rowY - h * 0.12 &&
-          word.bbox.x0 > w * 0.04
-        );
-      })
-      .map(word => ({
-        day: Number(
-          normalizeText(word.text)
-        ),
-        x:
-          (word.bbox.x0 +
-            word.bbox.x1) / 2
-      }))
-      .sort(
-        (a, b) => a.x - b.x
+        }
       );
 
-    const dates = [];
+    const recognition =
+      worker.recognize(
+        canvas
+      );
 
-    datePositions.forEach(p => {
+    const result =
+      await Promise.race([
+        recognition,
+        timeout
+      ]);
 
-      if (
-        !dates.some(
-          x =>
-            Math.abs(x.x - p.x) <
-            w * 0.012
-        )
-      ) {
-        dates.push(p);
-      }
-    });
+    const text =
+      result &&
+      result.data
+        ? result.data.text
+        : "";
 
-    // 日付OCRがうまくいかなかった場合
-    // 表の横幅から31日分を推定
-    if (dates.length < 10) {
+    return normalizeShift(text);
+  }
 
-      dates.length = 0;
+  // --------------------------------------------------
+  // 選択した行を読む
+  // --------------------------------------------------
 
-      const startX = w * 0.086;
-      const endX = w * 0.935;
+  async function readSelectedRow(
+    image,
+    rowY,
+    year,
+    month,
+    btn
+  ) {
 
-      const step =
-        (endX - startX) / 30;
+    await loadTesseract();
 
-      for (let d = 1; d <= 31; d++) {
+    const width =
+      image.naturalWidth;
 
-        dates.push({
-          day: d,
-          x:
-            startX +
-            step * (d - 0.5)
-        });
-      }
+    const height =
+      image.naturalHeight;
 
-    } else {
+    const dayCount =
+      daysInMonth(
+        year,
+        month
+      );
 
-      const pts =
-        dates.filter(
-          p =>
-            p.day >= 1 &&
-            p.day <= 31
-        );
+    /*
+      このシフト表の構造：
 
-      if (pts.length >= 2) {
+      左側の名前欄
+      ↓
+      1日〜月末の勤務欄
+      ↓
+      右側の名前欄
 
-        const first = pts[0];
-        const last =
-          pts[pts.length - 1];
+      現在使用している用紙に合わせて
+      勤務欄の左右位置を設定しています。
+    */
 
-        const slope =
-          (last.x - first.x) /
-          (last.day - first.day || 1);
+    const dayLeft =
+      width * 0.080;
 
-        const intercept =
-          first.x -
-          slope * first.day;
+    const dayRight =
+      width * 0.918;
 
-        dates.length = 0;
+    const dayWidth =
+      (
+        dayRight -
+        dayLeft
+      ) / dayCount;
 
-        for (let d = 1; d <= 31; d++) {
+    /*
+      行の高さ。
+      タップ位置を中心にして
+      上下を少しだけ切り出します。
+    */
 
-          dates.push({
-            day: d,
-            x:
-              intercept +
-              slope * d
-          });
+    const rowHeight =
+      Math.max(
+        24,
+        height * 0.045
+      );
+
+    const rowTop =
+      Math.max(
+        0,
+        rowY -
+        rowHeight / 2
+      );
+
+    const rowBottom =
+      Math.min(
+        height,
+        rowY +
+        rowHeight / 2
+      );
+
+    const actualRowHeight =
+      rowBottom -
+      rowTop;
+
+    btn.textContent =
+      "📖 OCRを準備しています…";
+
+    const worker =
+      await Tesseract.createWorker(
+        ["eng", "jpn"],
+        1,
+        {
+          logger: m => {
+
+            if (
+              m.status &&
+              m.progress != null
+            ) {
+
+              const p =
+                Math.round(
+                  m.progress * 100
+                );
+
+              btn.textContent =
+                "📖 シフトを読み取っています " +
+                p +
+                "%";
+            }
+          }
         }
-      }
-    }
+      );
 
-    // シフト文字を日付に割り当てる
-    const found = [];
+    try {
 
-    rowWords.forEach(word => {
+      await worker.setParameters({
+        tessedit_pageseg_mode:
+          Tesseract.PSM.SINGLE_WORD,
 
-      const shift =
-        normalizeShift(word.text);
-
-      if (!shift) return;
-
-      const x =
-        (word.bbox.x0 +
-          word.bbox.x1) / 2;
-
-      let nearest = null;
-      let distance = Infinity;
-
-      dates.forEach(d => {
-
-        const dist =
-          Math.abs(d.x - x);
-
-        if (dist < distance) {
-
-          distance = dist;
-          nearest = d;
-        }
+        tessedit_char_whitelist:
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
       });
 
-      const spacing =
-        dates.length > 1
-          ? Math.abs(
-              dates[1].x -
-              dates[0].x
-            )
-          : w / 30;
+      const result = [];
 
-      if (
-        nearest &&
-        distance <= spacing * 0.55
+      for (
+        let day = 1;
+        day <= dayCount;
+        day++
       ) {
 
-        found.push({
-          day: nearest.day,
-          shift
-        });
+        const cellX =
+          dayLeft +
+          dayWidth *
+          (day - 1);
+
+        /*
+          セルの左右に少し余白を入れる。
+          縦罫線をOCRしないため。
+        */
+
+        const marginX =
+          Math.max(
+            3,
+            dayWidth * 0.16
+          );
+
+        const canvas =
+          makeCellCanvas(
+            image,
+            cellX + marginX,
+            rowTop,
+            Math.max(
+              10,
+              dayWidth -
+              marginX * 2
+            ),
+            actualRowHeight
+          );
+
+        let shift = "";
+
+        try {
+
+          shift =
+            await recognizeCell(
+              worker,
+              canvas
+            );
+
+        } catch (e) {
+
+          console.log(
+            "OCR skip day",
+            day,
+            e
+          );
+
+          shift = "";
+        }
+
+        /*
+          OCRで取れたA/B/C1/D/E/Hだけ採用。
+          空欄はシフトなしとして扱います。
+        */
+
+        if (shift) {
+
+          result.push({
+            day,
+            shift
+          });
+        }
+
+        /*
+          iPhoneで処理が固まらないよう、
+          少しずつUIへ制御を返す。
+        */
+
+        if (
+          day % 3 === 0
+        ) {
+
+          await new Promise(
+            r =>
+              setTimeout(
+                r,
+                20
+              )
+          );
+        }
       }
-    });
 
-    // 同じ日を重複登録しない
-    const result = [];
-    const used = {};
+      /*
+        日本語シフト
+        「週」「振」「出」「勤」「休」は
+        OCRだけでは不安定なので、
+        今回は確認画面で手動追加・修正できます。
+      */
 
-    found.forEach(x => {
+      return result;
 
-      if (
-        x.day >= 1 &&
-        x.day <= 31 &&
-        !used[x.day]
-      ) {
+    } finally {
 
-        used[x.day] = true;
-
-        result.push(x);
-      }
-    });
-
-    return result.sort(
-      (a, b) => a.day - b.day
-    );
-  }
-
-  // ==============================
-  // 保存
-  // ==============================
-
-  function loadStoredShifts() {
-
-    try {
-
-      const raw =
-        localStorage.getItem(
-          "monthlyTodo"
-        );
-
-      const data =
-        raw
-          ? JSON.parse(raw)
-          : {};
-
-      return data &&
-        data.shifts &&
-        typeof data.shifts === "object"
-        ? data.shifts
-        : {};
-
-    } catch (e) {
-
-      return {};
+      await worker.terminate();
     }
   }
 
-  function saveStoredShifts(shifts) {
-
-    try {
-
-      const raw =
-        localStorage.getItem(
-          "monthlyTodo"
-        );
-
-      const data =
-        raw
-          ? JSON.parse(raw) || {}
-          : {};
-
-      data.shifts = shifts;
-
-      localStorage.setItem(
-        "monthlyTodo",
-        JSON.stringify(data)
-      );
-
-    } catch (e) {
-
-      console.error(e);
-
-      alert(
-        "シフトを保存できませんでした。"
-      );
-    }
-  }
-
-  // ==============================
-  // 読み取り結果確認
-  // ==============================
+  // --------------------------------------------------
+  // 読み取り結果
+  // --------------------------------------------------
 
   function showShiftResult(
     result,
@@ -729,85 +1185,126 @@
     month
   ) {
 
+    const dayCount =
+      daysInMonth(
+        year,
+        month
+      );
+
+    const resultMap = {};
+
+    result.forEach(item => {
+      resultMap[item.day] =
+        item.shift;
+    });
+
     const bg =
       document.createElement("div");
 
-    bg.style.cssText =
-      "position:fixed;inset:0;background:#0006;" +
-      "z-index:9999;display:flex;" +
-      "align-items:center;justify-content:center;" +
-      "padding:15px;";
+    bg.style.cssText = `
+      position:fixed;
+      inset:0;
+      background:#0006;
+      z-index:9999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:15px;
+    `;
 
     const box =
       document.createElement("div");
 
-    box.style.cssText =
-      "background:#fffefa;width:min(480px,100%);" +
-      "max-height:90vh;overflow:auto;" +
-      "border-radius:15px;padding:20px;" +
-      "box-shadow:0 12px 40px #0004;";
+    box.style.cssText = `
+      background:#fffefa;
+      width:min(480px,100%);
+      max-height:90vh;
+      overflow:auto;
+      border-radius:15px;
+      padding:20px;
+      box-shadow:0 12px 40px #0004;
+    `;
 
-    const rows =
-      result
-        .map(
-          item => `
-      <div style="
-        display:flex;
-        align-items:center;
-        gap:8px;
-        margin-bottom:7px
-      ">
+    let rows = "";
+
+    for (
+      let day = 1;
+      day <= dayCount;
+      day++
+    ) {
+
+      const current =
+        resultMap[day] || "";
+
+      rows += `
+
         <div style="
-          width:55px;
-          font-weight:600
+          display:flex;
+          align-items:center;
+          gap:7px;
+          margin-bottom:7px
         ">
-          ${month}/${item.day}
+
+          <div style="
+            width:48px;
+            font-weight:600
+          ">
+            ${month}/${day}
+          </div>
+
+          <select
+            data-day="${day}"
+            style="
+              flex:1;
+              height:38px;
+              border:1px solid #d0c8be;
+              border-radius:7px;
+              padding:4px 8px;
+              font-size:15px
+            "
+          >
+
+            <option value="">
+              なし
+            </option>
+
+            ${SHIFT_CODES.map(
+              code => `
+                <option
+                  value="${code}"
+                  ${
+                    code === current
+                      ? "selected"
+                      : ""
+                  }
+                >
+                  ${code}
+                </option>
+              `
+            ).join("")}
+
+          </select>
+
         </div>
-
-        <select
-          data-day="${item.day}"
-          style="
-            flex:1;
-            height:38px;
-            border:1px solid #d0c8be;
-            border-radius:7px;
-            padding:4px 8px;
-            font-size:15px
-          "
-        >
-          ${SHIFT_CODES.map(
-            code =>
-              `<option value="${code}" ${
-                code === item.shift
-                  ? "selected"
-                  : ""
-              }>${code}</option>`
-          ).join("")}
-
-          <option value="">
-            なし
-          </option>
-
-        </select>
-      </div>
-    `
-        )
-        .join("");
+      `;
+    }
 
     box.innerHTML = `
 
-      <h2 style="margin:0 0 10px">
+      <h2 style="
+        margin:0 0 10px
+      ">
         シフトを確認
       </h2>
 
       <p style="
         font-size:13px;
         color:#777;
-        line-height:1.6
+        line-height:1.7
       ">
-        写真から読み取った結果です。
+        写真から読み取った結果です。<br>
         間違っているところは、
-        ここで修正してから反映できます。
+        ここで修正できます。
       </p>
 
       <div style="
@@ -829,7 +1326,8 @@
         line-height:1.6
       ">
         📅 ${year}年${month}月<br>
-        読み取った日数：${result.length}日
+        OCRで自動検出：
+        ${result.length}日
       </div>
 
       <div style="
@@ -870,11 +1368,15 @@
     `;
 
     bg.appendChild(box);
+
     document.body.appendChild(bg);
 
     box.querySelector(
       "#shiftResultCancel"
-    ).onclick = () => bg.remove();
+    ).onclick = () => {
+
+      bg.remove();
+    };
 
     box.querySelector(
       "#shiftResultApply"
@@ -887,24 +1389,32 @@
         "select[data-day]"
       ).forEach(select => {
 
+        const day =
+          Number(
+            select.dataset.day
+          );
+
         const key =
           dateKey(
             year,
             month,
-            Number(
-              select.dataset.day
-            )
+            day
           );
 
         if (select.value) {
+
           shifts[key] =
             select.value;
+
         } else {
+
           delete shifts[key];
         }
       });
 
-      saveStoredShifts(shifts);
+      saveStoredShifts(
+        shifts
+      );
 
       bg.remove();
 
@@ -912,15 +1422,88 @@
     };
   }
 
-  // ==============================
+  // --------------------------------------------------
+  // localStorage
+  // --------------------------------------------------
+
+  function loadStoredShifts() {
+
+    try {
+
+      const raw =
+        localStorage.getItem(
+          "monthlyTodo"
+        );
+
+      const data =
+        raw
+          ? JSON.parse(raw)
+          : {};
+
+      if (
+        data &&
+        data.shifts &&
+        typeof data.shifts ===
+          "object"
+      ) {
+
+        return data.shifts;
+      }
+
+    } catch (e) {
+
+      console.error(e);
+    }
+
+    return {};
+  }
+
+  function saveStoredShifts(
+    shifts
+  ) {
+
+    try {
+
+      const raw =
+        localStorage.getItem(
+          "monthlyTodo"
+        );
+
+      const data =
+        raw
+          ? JSON.parse(raw) || {}
+          : {};
+
+      data.shifts =
+        shifts;
+
+      localStorage.setItem(
+        "monthlyTodo",
+        JSON.stringify(data)
+      );
+
+    } catch (e) {
+
+      console.error(e);
+
+      alert(
+        "シフトを保存できませんでした。"
+      );
+    }
+  }
+
+  // --------------------------------------------------
   // 初期化
-  // ==============================
+  // --------------------------------------------------
 
   function init() {
 
     try {
+
       addImportButton();
+
     } catch (e) {
+
       console.error(
         "shift-import init error",
         e
