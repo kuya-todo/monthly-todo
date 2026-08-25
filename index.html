@@ -203,7 +203,9 @@ document.getElementById('cancel').onclick=()=>modal.innerHTML='';
 modal.querySelector('.modalbg').onclick=e=>{if(e.target===e.currentTarget)modal.innerHTML=''};
 if(edit)document.getElementById('del').onclick=()=>{todos=todos.filter(x=>x.id!==t.id);save();modal.innerHTML='';render()};
 modal.querySelector('form').onsubmit=e=>{
-e.preventDefault();let v=title.value.trim();if(!v||!start.value||!end.value||end.value<start.value)return;
+e.preventDefault();
+let v=title.value.trim();
+if(!start.value||!end.value||end.value<start.value)return;
 if(t){t.title=v;t.done=done.checked;t.start=start.value;t.end=end.value;t.color=color;t.subs=subs}
 else{todos.push({id:id++,title:v,start:start.value,end:end.value,color,done:done.checked,subs})}
 // シフトは1日1つ。新規予定は選択日の既存シフトを保持し、変更した場合だけ更新する。
