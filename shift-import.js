@@ -164,9 +164,13 @@
       );
     }
 
-    btn.onclick = () => {
-      input.click();
-    };
+btn.onclick = () => {
+  const url =
+    "shortcuts://run-shortcut?name=" +
+    encodeURIComponent("シフト表をChatGPTへ送る");
+
+  window.location.href = url;
+};
 
     input.onchange = () => {
 
