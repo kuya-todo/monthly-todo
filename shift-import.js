@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "9.0";
+  const VERSION = "9.2";
 
   const SHIFT_CODES = [
     "",
@@ -37,6 +37,7 @@
 
   function saveShifts(shifts) {
     const data = loadData();
+
     data.shifts = shifts;
 
     localStorage.setItem(
@@ -46,19 +47,16 @@
   }
 
   function getMonthInfo() {
-
     const el =
       document.getElementById("month");
 
     if (el) {
-
       const m =
         el.textContent.match(
           /(\d{4})年\s*(\d{1,2})月/
         );
 
       if (m) {
-
         return {
           year: Number(m[1]),
           month: Number(m[2])
@@ -74,318 +72,158 @@
     };
   }
 
+
+  /*
+   * メインボタン
+   *
+   * 📤 シフト送信
+   * 📋 結果を貼る
+   *
+   * この2つを横並びで表示する。
+   */
   function makeButton() {
-  const app = document.querySelector(".app");
-  const calendar = document.querySelector(".calendar");
+    const app =
+      document.querySelector(".app");
 
-  let wrap = document.getElementById("shiftActionButtons");
+    const calendar =
+      document.querySelector(".calendar");
 
-  if (!wrap) {
-    wrap = document.createElement("div");
-    wrap.id = "shiftActionButtons";
-    wrap.style.cssText = [
-      "display:flex",
-      "gap:8px",
-      "width:100%",
-      "margin:10px 0",
-      "box-sizing:border-box"
-    ].join(";");
-
-    const sendBtn = document.createElement("button");
-    sendBtn.id = "shiftImportButton";
-    sendBtn.textContent = "📤 シフト送信";
-    sendBtn.style.cssText = [
-      "flex:1",
-      "min-width:0",
-      "padding:12px 6px",
-      "border:1px solid #d0c8be",
-      "border-radius:10px",
-      "background:#fffefa",
-      "color:#403b36",
-      "font-size:15px",
-      "font-weight:700",
-      "box-sizing:border-box"
-    ].join(";");
-
-    const pasteBtn = document.createElement("button");
-    pasteBtn.id = "shiftPasteButton";
-    pasteBtn.textContent = "📋 結果を貼る";
-    pasteBtn.style.cssText = [
-      "flex:1",
-      "min-width:0",
-      "padding:12px 6px",
-      "border:1px solid #d0c8be",
-      "border-radius:10px",
-      "background:#fffefa",
-      "color:#403b36",
-      "font-size:15px",
-      "font-weight:700",
-      "box-sizing:border-box"
-    ].join(";");
-
-    wrap.appendChild(sendBtn);
-    wrap.appendChild(pasteBtn);
-
-    if (app && calendar) {
-      app.insertBefore(wrap, calendar);
-    } else if (app) {
-      app.insertBefore(wrap, app.firstChild);
-    } else {
-      document.body.appendChild(wrap);
-    }
-
-    sendBtn.onclick = () => {
-      const url =
-        "shortcuts://run-shortcut?name=" +
-        encodeURIComponent("シフト表をChatGPTへ送る");
-
-      window.location.href = url;
-    };
-
-    pasteBtn.onclick = () => {
-      openPasteScreen(getMonthInfo());
-    };
-  }
-}
-
-    let input =
+    let wrap =
       document.getElementById(
-        "shiftImportInput"
+        "shiftActionButtons"
       );
 
-    if (!input) {
+    if (!wrap) {
+      wrap =
+        document.createElement("div");
 
-      input =
-        document.createElement(
-          "input"
+      wrap.id =
+        "shiftActionButtons";
+
+      wrap.style.cssText = [
+        "display:flex",
+        "gap:8px",
+        "width:100%",
+        "margin:10px 0",
+        "box-sizing:border-box"
+      ].join(";");
+
+      /*
+       * シフト送信ボタン
+       */
+      const sendBtn =
+        document.createElement("button");
+
+      sendBtn.id =
+        "shiftImportButton";
+
+      sendBtn.type =
+        "button";
+
+      sendBtn.textContent =
+        "📤 シフト送信";
+
+      sendBtn.style.cssText = [
+        "flex:1",
+        "min-width:0",
+        "min-height:46px",
+        "padding:10px 6px",
+        "border:1px solid #d0c8be",
+        "border-radius:10px",
+        "background:#fffefa",
+        "color:#403b36",
+        "font-size:15px",
+        "font-weight:700",
+        "box-sizing:border-box"
+      ].join(";");
+
+
+      /*
+       * 結果を貼るボタン
+       */
+      const pasteBtn =
+        document.createElement("button");
+
+      pasteBtn.id =
+        "shiftPasteButton";
+
+      pasteBtn.type =
+        "button";
+
+      pasteBtn.textContent =
+        "📋 結果を貼る";
+
+      pasteBtn.style.cssText = [
+        "flex:1",
+        "min-width:0",
+        "min-height:46px",
+        "padding:10px 6px",
+        "border:1px solid #d0c8be",
+        "border-radius:10px",
+        "background:#fffefa",
+        "color:#403b36",
+        "font-size:15px",
+        "font-weight:700",
+        "box-sizing:border-box"
+      ].join(";");
+
+
+      wrap.appendChild(sendBtn);
+      wrap.appendChild(pasteBtn);
+
+
+      /*
+       * カレンダーの上に表示
+       */
+      if (app && calendar) {
+        app.insertBefore(
+          wrap,
+          calendar
         );
-
-      input.id =
-        "shiftImportInput";
-
-      input.type =
-        "file";
-
-      input.accept =
-        "image/*";
-
-      input.style.display =
-        "none";
-
-      document.body.appendChild(
-        input
-      );
-    }
-
-btn.onclick = () => {
-  const url =
-    "shortcuts://run-shortcut?name=" +
-    encodeURIComponent("シフト表をChatGPTへ送る");
-
-  window.location.href = url;
-};
-
-    input.onchange = () => {
-
-      if (
-        !input.files ||
-        !input.files[0]
-      ) {
-        return;
+      } else if (app) {
+        app.insertBefore(
+          wrap,
+          app.firstChild
+        );
+      } else {
+        document.body.appendChild(
+          wrap
+        );
       }
 
-      openSendScreen(
-        input.files[0],
-        getMonthInfo()
-      );
 
-      input.value = "";
-    };
+      /*
+       * シフト送信
+       *
+       * 直接ショートカットを起動。
+       */
+      sendBtn.onclick = () => {
+        const url =
+          "shortcuts://run-shortcut?name=" +
+          encodeURIComponent(
+            "シフト表をChatGPTへ送る"
+          );
+
+        window.location.href = url;
+      };
+
+
+      /*
+       * ChatGPT結果を貼る
+       */
+      pasteBtn.onclick = () => {
+        openPasteScreen(
+          getMonthInfo()
+        );
+      };
+    }
   }
 
-  function openSendScreen(
-    file,
-    monthInfo
-  ) {
 
-    const bg =
-      document.createElement(
-        "div"
-      );
-
-    bg.style.cssText =
-      [
-        "position:fixed",
-        "inset:0",
-        "z-index:9999",
-        "background:#0008",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
-        "padding:15px",
-        "box-sizing:border-box"
-      ].join(";");
-
-    const box =
-      document.createElement(
-        "div"
-      );
-
-    box.style.cssText =
-      [
-        "background:#fffefa",
-        "width:min(700px,100%)",
-        "max-height:94vh",
-        "overflow:auto",
-        "border-radius:18px",
-        "padding:20px",
-        "box-sizing:border-box"
-      ].join(";");
-
-    box.innerHTML = `
-
-      <h2 style="
-        margin:0 0 10px;
-      ">
-        🤖 ChatGPTでシフトを読み取る
-      </h2>
-
-      <p style="
-        color:#666;
-        line-height:1.7;
-        font-size:14px;
-      ">
-        写真をChatGPTに渡して、
-        <strong>久山さんの水色の行</strong>
-        を読み取ります。
-      </p>
-
-      <div style="
-        background:#f4f1eb;
-        border-radius:10px;
-        padding:12px;
-        margin:12px 0;
-        font-size:13px;
-        line-height:1.7;
-      ">
-
-        📅 ${monthInfo.year}年${monthInfo.month}月
-
-        <br>
-
-        <strong>
-          読み取り対象：
-          1日〜${new Date(
-            monthInfo.year,
-            monthInfo.month,
-            0
-          ).getDate()}日
-        </strong>
-
-      </div>
-
-      <img
-        id="shiftPreview"
-        style="
-          width:100%;
-          max-height:300px;
-          object-fit:contain;
-          border-radius:8px;
-          background:#eee;
-          margin-bottom:12px;
-        "
-      >
-
-      <button
-        id="sendChatGPT"
-        style="
-          width:100%;
-          min-height:50px;
-          border:0;
-          border-radius:10px;
-          background:#626960;
-          color:white;
-          font-size:16px;
-          font-weight:700;
-        "
-      >
-        🤖 ChatGPTへ送る
-      </button>
-
-      <button
-        id="pasteResult"
-        style="
-          width:100%;
-          min-height:46px;
-          margin-top:9px;
-          border:1px solid #d0c8be;
-          border-radius:10px;
-          background:white;
-          color:#403b36;
-          font-size:15px;
-          font-weight:700;
-        "
-      >
-        📋 ChatGPTの結果を貼り付ける
-      </button>
-
-      <button
-        id="closeShiftAI"
-        style="
-          width:100%;
-          min-height:42px;
-          margin-top:9px;
-          border:0;
-          background:transparent;
-          color:#777;
-          font-size:14px;
-        "
-      >
-        閉じる
-      </button>
-
-    `;
-
-    bg.appendChild(box);
-
-    document.body.appendChild(bg);
-
-    const preview =
-      box.querySelector(
-        "#shiftPreview"
-      );
-
-    preview.src =
-      URL.createObjectURL(file);
-
-    box.querySelector(
-      "#closeShiftAI"
-    ).onclick = () => {
-      bg.remove();
-    };
-
-    box.querySelector(
-      "#sendChatGPT"
-    ).onclick = async () => {
-
-      await sendToChatGPT(
-        file,
-        monthInfo
-      );
-    };
-
-    box.querySelector(
-      "#pasteResult"
-    ).onclick = () => {
-
-      openPasteScreen(
-        monthInfo
-      );
-    };
-  }
-
+  /*
+   * ChatGPTへ渡す指示文
+   */
   function makePrompt(info) {
-
     const days =
       new Date(
         info.year,
@@ -436,200 +274,11 @@ ${info.year}-${pad(info.month)}-03=H
 `.trim();
   }
 
-  async function sendToChatGPT(
-    file,
-    info
-  ) {
 
-    const prompt =
-      makePrompt(info);
-
-    try {
-
-      const shareData = {
-
-        files: [file],
-
-        title:
-          "Monthly Todo シフト表",
-
-        text: prompt
-      };
-
-      if (
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare(
-          shareData
-        )
-      ) {
-
-        await navigator.share(
-          shareData
-        );
-
-        return;
-      }
-
-    } catch (e) {
-
-      if (
-        e &&
-        e.name === "AbortError"
-      ) {
-        return;
-      }
-
-      console.warn(
-        "Web Share failed",
-        e
-      );
-    }
-
-
-    /*
-     * 共有機能が使えない場合は、
-     * ChatGPTへ渡す指示文を表示。
-     */
-
-    openPromptScreen(
-      prompt
-    );
-  }
-
-  function openPromptScreen(
-    prompt
-  ) {
-
-    const bg =
-      document.createElement(
-        "div"
-      );
-
-    bg.style.cssText =
-      [
-        "position:fixed",
-        "inset:0",
-        "z-index:10001",
-        "background:#0008",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
-        "padding:15px"
-      ].join(";");
-
-    const box =
-      document.createElement(
-        "div"
-      );
-
-    box.style.cssText =
-      [
-        "background:#fffefa",
-        "width:min(600px,100%)",
-        "max-height:90vh",
-        "overflow:auto",
-        "border-radius:18px",
-        "padding:20px"
-      ].join(";");
-
-    box.innerHTML = `
-
-      <h3>
-        ChatGPTに渡す指示
-      </h3>
-
-      <p style="
-        font-size:13px;
-        color:#777;
-        line-height:1.6;
-      ">
-        下の文章をコピーして、
-        写真と一緒にChatGPTへ送ってください。
-      </p>
-
-      <textarea
-        id="aiPrompt"
-        style="
-          width:100%;
-          height:320px;
-          box-sizing:border-box;
-          border:1px solid #ccc;
-          border-radius:8px;
-          padding:10px;
-          font-size:13px;
-          line-height:1.5;
-        "
-      ></textarea>
-
-      <button
-        id="copyPrompt"
-        style="
-          width:100%;
-          min-height:46px;
-          margin-top:10px;
-          border:0;
-          border-radius:9px;
-          background:#626960;
-          color:white;
-          font-size:15px;
-          font-weight:700;
-        "
-      >
-        📋 指示をコピー
-      </button>
-
-      <button
-        id="closePrompt"
-        style="
-          width:100%;
-          min-height:42px;
-          margin-top:7px;
-          border:0;
-          background:transparent;
-          color:#777;
-        "
-      >
-        閉じる
-      </button>
-    `;
-
-    bg.appendChild(box);
-
-    document.body.appendChild(bg);
-
-    const ta =
-      box.querySelector(
-        "#aiPrompt"
-      );
-
-    ta.value =
-      prompt;
-
-    box.querySelector(
-      "#copyPrompt"
-    ).onclick = async () => {
-
-      await navigator.clipboard.writeText(
-        prompt
-      );
-
-      alert(
-        "指示文をコピーしました。"
-      );
-    };
-
-    box.querySelector(
-      "#closePrompt"
-    ).onclick = () => {
-      bg.remove();
-    };
-  }
-
-  function openPasteScreen(
-    info
-  ) {
-
+  /*
+   * ChatGPT結果貼り付け画面
+   */
+  function openPasteScreen(info) {
     const days =
       new Date(
         info.year,
@@ -638,43 +287,38 @@ ${info.year}-${pad(info.month)}-03=H
       ).getDate();
 
     const bg =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
-    bg.style.cssText =
-      [
-        "position:fixed",
-        "inset:0",
-        "z-index:10002",
-        "background:#0008",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
-        "padding:15px"
-      ].join(";");
+    bg.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:10002",
+      "background:#0008",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "padding:15px",
+      "box-sizing:border-box"
+    ].join(";");
 
     const box =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
-    box.style.cssText =
-      [
-        "background:#fffefa",
-        "width:min(650px,100%)",
-        "max-height:94vh",
-        "overflow:auto",
-        "border-radius:18px",
-        "padding:20px"
-      ].join(";");
+    box.style.cssText = [
+      "background:#fffefa",
+      "width:min(650px,100%)",
+      "max-height:94vh",
+      "overflow:auto",
+      "border-radius:18px",
+      "padding:20px",
+      "box-sizing:border-box"
+    ].join(";");
 
     box.innerHTML = `
-
       <h2 style="
         margin:0 0 8px;
       ">
-        📋 ChatGPTの結果を貼り付け
+        📋 結果を貼る
       </h2>
 
       <p style="
@@ -682,17 +326,18 @@ ${info.year}-${pad(info.month)}-03=H
         font-size:13px;
         line-height:1.6;
       ">
-        ChatGPTが返した
-        「YYYY-MM-DD=シフト」
-        の一覧を、そのまま貼り付けてください。
+        ChatGPTが返した結果を
+        そのまま貼り付けてください。
+        <br>
+        ${info.year}年${info.month}月・${days}日分
       </p>
 
       <textarea
         id="aiResultText"
         placeholder="
-2026-09-01=A
-2026-09-02=H
-2026-09-03=なし
+${info.year}-${pad(info.month)}-01=A
+${info.year}-${pad(info.month)}-02=H
+${info.year}-${pad(info.month)}-03=なし
 …
         "
         style="
@@ -709,6 +354,7 @@ ${info.year}-${pad(info.month)}-03=H
 
       <button
         id="parseAI"
+        type="button"
         style="
           width:100%;
           min-height:48px;
@@ -726,6 +372,7 @@ ${info.year}-${pad(info.month)}-03=H
 
       <button
         id="cancelAI"
+        type="button"
         style="
           width:100%;
           min-height:42px;
@@ -743,16 +390,23 @@ ${info.year}-${pad(info.month)}-03=H
 
     document.body.appendChild(bg);
 
+
+    /*
+     * キャンセル
+     */
     box.querySelector(
       "#cancelAI"
     ).onclick = () => {
       bg.remove();
     };
 
+
+    /*
+     * 結果を解析
+     */
     box.querySelector(
       "#parseAI"
     ).onclick = () => {
-
       const text =
         box.querySelector(
           "#aiResultText"
@@ -764,14 +418,8 @@ ${info.year}-${pad(info.month)}-03=H
           info
         );
 
-      if (
-        result.error
-      ) {
-
-        alert(
-          result.error
-        );
-
+      if (result.error) {
+        alert(result.error);
         return;
       }
 
@@ -782,21 +430,58 @@ ${info.year}-${pad(info.month)}-03=H
         info
       );
     };
+
+
+    /*
+     * iPhoneのクリップボードから
+     * 自動取得を試みる。
+     *
+     * 取得できなくても、
+     * 手動ペーストはそのまま可能。
+     */
+    if (
+      navigator.clipboard &&
+      navigator.clipboard.readText
+    ) {
+      navigator.clipboard
+        .readText()
+        .then(text => {
+          const ta =
+            box.querySelector(
+              "#aiResultText"
+            );
+
+          if (
+            ta &&
+            text &&
+            text.includes("=")
+          ) {
+            ta.value = text;
+          }
+        })
+        .catch(() => {
+          /*
+           * iOS側で許可されない場合は
+           * 手動ペーストを使用。
+           */
+        });
+    }
   }
 
+
+  /*
+   * ChatGPT結果を解析
+   */
   function parseAIResult(
     text,
     info
   ) {
-
     const shifts = {};
 
     const lines =
       String(text || "")
         .split(/\r?\n/)
-        .map(
-          x => x.trim()
-        )
+        .map(x => x.trim())
         .filter(Boolean);
 
     const days =
@@ -808,10 +493,7 @@ ${info.year}-${pad(info.month)}-03=H
 
     let count = 0;
 
-    for (
-      const line of lines
-    ) {
-
+    for (const line of lines) {
       const match =
         line.match(
           /(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})\s*[=:：]\s*(.+)/
@@ -865,7 +547,6 @@ ${info.year}-${pad(info.month)}-03=H
     }
 
     if (!count) {
-
       return {
         error:
           "ChatGPTの結果を読み取れませんでした。\n\n" +
@@ -878,10 +559,11 @@ ${info.year}-${pad(info.month)}-03=H
     };
   }
 
-  function normalizeValue(
-    value
-  ) {
 
+  /*
+   * シフト表記を統一
+   */
+  function normalizeValue(value) {
     if (!value) {
       return "?";
     }
@@ -939,11 +621,14 @@ ${info.year}-${pad(info.month)}-03=H
     return "?";
   }
 
+
+  /*
+   * 解析結果を確認
+   */
   function showResult(
     shifts,
     info
   ) {
-
     const days =
       new Date(
         info.year,
@@ -952,53 +637,46 @@ ${info.year}-${pad(info.month)}-03=H
       ).getDate();
 
     const bg =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
-    bg.style.cssText =
-      [
-        "position:fixed",
-        "inset:0",
-        "z-index:10003",
-        "background:#0008",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
-        "padding:15px"
-      ].join(";");
+    bg.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:10003",
+      "background:#0008",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "padding:15px",
+      "box-sizing:border-box"
+    ].join(";");
 
     const box =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
-    box.style.cssText =
-      [
-        "background:#fffefa",
-        "width:min(700px,100%)",
-        "max-height:94vh",
-        "overflow:auto",
-        "border-radius:18px",
-        "padding:20px"
-      ].join(";");
+    box.style.cssText = [
+      "background:#fffefa",
+      "width:min(700px,100%)",
+      "max-height:94vh",
+      "overflow:auto",
+      "border-radius:18px",
+      "padding:20px",
+      "box-sizing:border-box"
+    ].join(";");
 
     const detected =
-      Object.values(
-        shifts
-      ).filter(
-        x => x !== ""
-      ).length;
+      Object.values(shifts)
+        .filter(
+          x => x !== ""
+        ).length;
 
     const unknown =
-      Object.values(
-        shifts
-      ).filter(
-        x => x === "?"
-      ).length;
+      Object.values(shifts)
+        .filter(
+          x => x === "?"
+        ).length;
 
     let html = `
-
       <h2 style="
         margin:0 0 8px;
       ">
@@ -1012,28 +690,20 @@ ${info.year}-${pad(info.month)}-03=H
         margin-bottom:12px;
         line-height:1.7;
       ">
-
         📅 ${info.year}年${info.month}月
-
         <br>
-
         読み取り：
-        <strong>
-          ${detected}日
-        </strong>
+        <strong>${detected}日</strong>
 
         ${
           unknown
             ? `
               <br>
               ⚠️ 要確認：
-              <strong>
-                ${unknown}日
-              </strong>
+              <strong>${unknown}日</strong>
             `
             : ""
         }
-
       </div>
 
       <div style="
@@ -1042,12 +712,12 @@ ${info.year}-${pad(info.month)}-03=H
       ">
     `;
 
+
     for (
       let day = 1;
       day <= days;
       day++
     ) {
-
       const key =
         dateKey(
           info.year,
@@ -1062,7 +732,6 @@ ${info.year}-${pad(info.month)}-03=H
         value === "?";
 
       html += `
-
         <div style="
           display:flex;
           align-items:center;
@@ -1100,12 +769,9 @@ ${info.year}-${pad(info.month)}-03=H
       `;
 
       for (
-        const code of
-        SHIFT_CODES
+        const code of SHIFT_CODES
       ) {
-
         html += `
-
           <option
             value="${code}"
             ${
@@ -1120,12 +786,10 @@ ${info.year}-${pad(info.month)}-03=H
                 : code
             }
           </option>
-
         `;
       }
 
       html += `
-
           </select>
 
           <span
@@ -1155,8 +819,8 @@ ${info.year}-${pad(info.month)}-03=H
       `;
     }
 
-    html += `
 
+    html += `
       </div>
 
       <div style="
@@ -1167,6 +831,7 @@ ${info.year}-${pad(info.month)}-03=H
 
         <button
           id="cancelAIResult"
+          type="button"
           style="
             flex:1;
             min-height:46px;
@@ -1181,6 +846,7 @@ ${info.year}-${pad(info.month)}-03=H
 
         <button
           id="applyAIResult"
+          type="button"
           style="
             flex:1;
             min-height:46px;
@@ -1198,19 +864,21 @@ ${info.year}-${pad(info.month)}-03=H
       </div>
     `;
 
-    box.innerHTML =
-      html;
+
+    box.innerHTML = html;
 
     bg.appendChild(box);
 
     document.body.appendChild(bg);
 
+
+    /*
+     * 選択変更時の表示
+     */
     box.querySelectorAll(
       "select"
     ).forEach(select => {
-
       select.onchange = () => {
-
         const status =
           select.parentElement
             .querySelector(
@@ -1236,16 +904,23 @@ ${info.year}-${pad(info.month)}-03=H
       };
     });
 
+
+    /*
+     * キャンセル
+     */
     box.querySelector(
       "#cancelAIResult"
     ).onclick = () => {
       bg.remove();
     };
 
+
+    /*
+     * カレンダーへ反映
+     */
     box.querySelector(
       "#applyAIResult"
     ).onclick = () => {
-
       const data =
         loadData();
 
@@ -1255,7 +930,6 @@ ${info.year}-${pad(info.month)}-03=H
       box.querySelectorAll(
         "select[data-key]"
       ).forEach(select => {
-
         const key =
           select.dataset.key;
 
@@ -1266,30 +940,18 @@ ${info.year}-${pad(info.month)}-03=H
           value &&
           value !== "?"
         ) {
-
           current[key] =
             value;
-
-        } else if (
-          value === ""
-        ) {
-
-          delete current[key];
-
         } else {
-
           /*
-           * ? は安全のため
-           * カレンダーへ反映しない。
+           * なし・? は
+           * 既存シフトを削除。
            */
-
           delete current[key];
         }
       });
 
-      saveShifts(
-        current
-      );
+      saveShifts(current);
 
       bg.remove();
 
@@ -1297,22 +959,24 @@ ${info.year}-${pad(info.month)}-03=H
     };
   }
 
+
+  /*
+   * 初期化
+   */
   function init() {
     makeButton();
   }
+
 
   if (
     document.readyState ===
     "loading"
   ) {
-
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
-
   } else {
-
     init();
   }
 
