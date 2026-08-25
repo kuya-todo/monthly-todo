@@ -149,7 +149,7 @@ wk.appendChild(ds);
 let ws=new Date(y,m,w*7-first+1),we=new Date(y,m,w*7-first+7);
 let wsk=key(ws.getFullYear(),ws.getMonth(),ws.getDate()),wek=key(we.getFullYear(),we.getMonth(),we.getDate());
 let pieces=[],lanes=[];
-todos.forEach(t=>{
+todos.filter(t=>t.title&&t.title.trim()).forEach(t=>{
 if(dt(t.end)<dt(wsk)||dt(t.start)>dt(wek))return;
 let s=dt(t.start)>dt(wsk)?t.start:wsk,e=dt(t.end)<dt(wek)?t.end:wek,sc=diff(wsk,s),ec=diff(wsk,e),lane=0;
 while(lanes[lane]!=null&&lanes[lane]>=sc)lane++;lanes[lane]=ec;
