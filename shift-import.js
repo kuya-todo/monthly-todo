@@ -75,65 +75,78 @@
   }
 
   function makeButton() {
+  const app = document.querySelector(".app");
+  const calendar = document.querySelector(".calendar");
 
-    let btn =
-      document.getElementById(
-        "shiftImportButton"
-      );
+  let wrap = document.getElementById("shiftActionButtons");
 
-    if (!btn) {
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = "shiftActionButtons";
+    wrap.style.cssText = [
+      "display:flex",
+      "gap:8px",
+      "width:100%",
+      "margin:10px 0",
+      "box-sizing:border-box"
+    ].join(";");
 
-      btn =
-        document.createElement(
-          "button"
-        );
+    const sendBtn = document.createElement("button");
+    sendBtn.id = "shiftImportButton";
+    sendBtn.textContent = "📤 シフト送信";
+    sendBtn.style.cssText = [
+      "flex:1",
+      "min-width:0",
+      "padding:12px 6px",
+      "border:1px solid #d0c8be",
+      "border-radius:10px",
+      "background:#fffefa",
+      "color:#403b36",
+      "font-size:15px",
+      "font-weight:700",
+      "box-sizing:border-box"
+    ].join(";");
 
-      btn.id =
-        "shiftImportButton";
+    const pasteBtn = document.createElement("button");
+    pasteBtn.id = "shiftPasteButton";
+    pasteBtn.textContent = "📋 結果を貼る";
+    pasteBtn.style.cssText = [
+      "flex:1",
+      "min-width:0",
+      "padding:12px 6px",
+      "border:1px solid #d0c8be",
+      "border-radius:10px",
+      "background:#fffefa",
+      "color:#403b36",
+      "font-size:15px",
+      "font-weight:700",
+      "box-sizing:border-box"
+    ].join(";");
 
-      btn.textContent =
-        "🤖 シフト表をChatGPTへ送る";
+    wrap.appendChild(sendBtn);
+    wrap.appendChild(pasteBtn);
 
-      btn.style.cssText =
-        [
-          "display:block",
-          "width:100%",
-          "margin:10px 0",
-          "padding:14px",
-          "border:1px solid #d0c8be",
-          "border-radius:10px",
-          "background:#fffefa",
-          "color:#403b36",
-          "font-size:16px",
-          "font-weight:700",
-          "box-sizing:border-box"
-        ].join(";");
-
-      const app =
-        document.querySelector(".app");
-
-      const calendar =
-        document.querySelector(".calendar");
-
-      if (app && calendar) {
-
-        app.insertBefore(
-          btn,
-          calendar
-        );
-
-      } else if (app) {
-
-        app.insertBefore(
-          btn,
-          app.firstChild
-        );
-
-      } else {
-
-        document.body.appendChild(btn);
-      }
+    if (app && calendar) {
+      app.insertBefore(wrap, calendar);
+    } else if (app) {
+      app.insertBefore(wrap, app.firstChild);
+    } else {
+      document.body.appendChild(wrap);
     }
+
+    sendBtn.onclick = () => {
+      const url =
+        "shortcuts://run-shortcut?name=" +
+        encodeURIComponent("シフト表をChatGPTへ送る");
+
+      window.location.href = url;
+    };
+
+    pasteBtn.onclick = () => {
+      openPasteScreen(getMonthInfo());
+    };
+  }
+}
 
     let input =
       document.getElementById(
