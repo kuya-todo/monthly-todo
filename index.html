@@ -22,10 +22,10 @@ button{font:inherit;cursor:pointer}
 .weekhead,.days{display:grid;grid-template-columns:repeat(7,1fr)}
 .weekhead div{text-align:center;padding:8px 0;border-right:1px solid #ddd7cf;font-size:11px}
 .weekhead div:last-child{border:0}.sun{color:#d84a42}.sat{color:#3169b5}
-.week{position:relative;border-bottom:1px solid #ddd7cf;height:160px;min-height:160px}
+.week{position:relative;border-bottom:1px solid #ddd7cf;height:150px;min-height:150px}
 .week:last-child{border:0}
-.days{height:160px;min-height:160px}
-.day{height:160px;border-right:1px solid #ddd7cf;position:relative;padding:5px 6px;cursor:pointer}
+.days{height:150px;min-height:150px}
+.day{height:150px;border-right:1px solid #ddd7cf;position:relative;padding:5px 6px;cursor:pointer}
 .day:last-child{border:0}
 .other{background:#faf8f3}
 .num{font-size:12px;font-weight:600;position:relative;z-index:10;display:flex;align-items:center;min-height:23px}
@@ -33,25 +33,22 @@ button{font:inherit;cursor:pointer}
 .holiday .num{color:#d84a42}
 .today .num{background:#686d66;color:#fff;border-radius:50%;width:23px;height:23px;justify-content:center}
 .today.holiday .num{background:#d84a42;color:#fff}
-.shift{position:absolute;top:5px;right:5px;z-index:11;font-size:13px;font-weight:800;line-height:23px;white-space:nowrap;letter-spacing:.1px}
+.shift{position:absolute;top:4px;right:4px;z-index:11;width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;line-height:1;white-space:nowrap;letter-spacing:0;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .shift.s-none{display:none}
-.shift.s-a{color:#3f77b7}.shift.s-b{color:#3c8aa0}.shift.s-c1{color:#5c8b8e}.shift.s-d{color:#c28b38}.shift.s-e{color:#76528b}.shift.s-h{color:#c35f88}
-.shift.s-week,.shift.s-furi{color:#4b875f}.shift.s-depart{color:#9a7a43}.shift.s-work{color:#b44e4e}.shift.s-off{color:#777}
+.shift.s-a{color:#fff;background:#5d8fca}.shift.s-b{color:#fff;background:#5c9aa9}.shift.s-c1{color:#fff;background:#6ba4a8}.shift.s-d{color:#fff;background:#c99a4d}.shift.s-e{color:#fff;background:#8264a0}.shift.s-h{color:#fff;background:#d2779b}
+.shift.s-week,.shift.s-furi{color:#fff;background:#68a07a}.shift.s-depart{color:#fff;background:#b48a4f}.shift.s-work{color:#fff;background:#b86666}.shift.s-off{color:#fff;background:#888}
 .bars{position:absolute;inset:0;pointer-events:none}
-.bar{position:absolute;height:23px;line-height:23px;border:0;border-radius:0;padding:0 7px;color:#49433d;font-size:10px;white-space:nowrap;overflow:visible;z-index:5;pointer-events:auto;text-align:left}
-.bar.start{border-radius:4px 0 0 4px}
-.bar.end{padding-right:18px}
-.bar.end:after{content:"";position:absolute;right:-15px;top:0;border-top:11.5px solid transparent;border-bottom:11.5px solid transparent;border-left:15px solid var(--c)}
+.bar{position:absolute;height:23px;line-height:23px;border:0;border-radius:0;padding:0 7px;color:#49433d;font-size:10px;white-space:nowrap;overflow:hidden;z-index:5;pointer-events:auto;text-align:left}
+.bar.start{border-radius:5px 0 0 5px}
+.bar.end{padding-right:22px;clip-path:polygon(0 0,calc(100% - 15px) 0,100% 50%,calc(100% - 15px) 100%,0 100%)}
+.bar.single{border-radius:6px;padding-right:7px;clip-path:none}
 .bar.done{opacity:.38;text-decoration:line-through}
 .label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .bar:not(.start) .label{display:none}
 .bar.compact{height:18px;line-height:18px;font-size:8px}
-.bar.compact.end:after{top:0;border-top-width:9px;border-bottom-width:9px}
-.bar.compact.end{padding-right:15px}
-.bar.compact.end:after{right:-12px;border-left-width:12px}
+.bar.compact.end{padding-right:18px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%)}
 .day.has-many .bar{height:18px;line-height:18px;font-size:8px}
-.day.has-many .bar.end{padding-right:15px}
-.day.has-many .bar.end:after{right:-12px;border-top-width:9px;border-bottom-width:9px;border-left-width:12px}
+.day.has-many .bar.end{padding-right:18px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%)}
 .hint{text-align:center;font-size:10px;color:#8d867d;margin:8px}
 .modalbg{position:fixed;inset:0;background:#0004;display:flex;align-items:center;justify-content:center;padding:15px;z-index:30}
 .modal{background:#fffefa;width:min(460px,100%);max-height:90vh;overflow:auto;border-radius:15px;padding:19px;box-shadow:0 12px 40px #0003}
@@ -80,13 +77,13 @@ button{font:inherit;cursor:pointer}
 .save{background:#626960!important;color:white;border-color:#626960!important}.delete{margin-right:auto;color:#a05f59!important;border-color:#e0c8c3!important}
 @media(max-width:650px){
 .app{padding:10px 5px}h1{font-size:20px}
-.day,.days,.week{height:160px;min-height:160px}.day{padding:5px 4px}
+.day,.days,.week{height:150px;min-height:150px}.day{padding:5px 4px}
 .bar{height:21px;line-height:21px;font-size:9px;padding-left:6px}
-.bar.end{padding-right:16px}.bar.end:after{right:-14px}
+.bar.end{padding-right:18px;clip-path:polygon(0 0,calc(100% - 13px) 0,100% 50%,calc(100% - 13px) 100%,0 100%)}
+.bar.single{padding-right:6px;clip-path:none}
 .bar.compact,.day.has-many .bar{height:17px;line-height:17px;font-size:7.5px}
-.bar.compact.end,.day.has-many .bar.end{padding-right:13px}
-.bar.compact.end:after,.day.has-many .bar.end:after{right:-11px;border-top-width:8.5px;border-bottom-width:8.5px;border-left-width:11px}
-.weekhead div{font-size:10px}.shift{font-size:12px;right:4px}
+.bar.compact.end,.day.has-many .bar.end{padding-right:15px;clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%)}
+.weekhead div{font-size:10px}.shift{width:25px;height:25px;font-size:10px;right:4px;top:4px}
 }
 </style>
 </head>
@@ -234,7 +231,7 @@ cells.forEach(c=>{if(many)c.classList.add('has-many')});
 let bs=document.createElement('div');bs.className='bars';
 pieces.forEach(p=>{
 let b=document.createElement('button');
-b.className='bar '+(p.s?'start ':'')+(p.e?'end ':'')+(p.t.done?'done ':'')+(many?'compact':'');
+b.className='bar '+(p.s?'start ':'')+(p.e?'end ':'')+(p.sc===p.ec?'single ':'')+(p.t.done?'done ':'')+(many?'compact':'');
 b.style.background=C[p.t.color];
 b.style.setProperty('--c',C[p.t.color]);
 b.style.left=(p.sc*100/7+0.5)+'%';
