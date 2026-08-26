@@ -29,7 +29,10 @@ button{font:inherit;cursor:pointer}
 .day:last-child{border:0}
 .other{background:#faf8f3}
 .num{font-size:12px;font-weight:600;position:relative;z-index:10;display:flex;align-items:center;min-height:23px}
+.num.sun{color:#d84a42}.num.sat{color:#3169b5}
+.holiday .num{color:#d84a42}
 .today .num{background:#686d66;color:#fff;border-radius:50%;width:23px;height:23px;justify-content:center}
+.today.holiday .num{background:#d84a42;color:#fff}
 .shift{position:absolute;top:5px;right:5px;z-index:11;font-size:13px;font-weight:800;line-height:23px;white-space:nowrap;letter-spacing:.1px}
 .shift.s-none{display:none}
 .shift.s-a{color:#3f77b7}.shift.s-b{color:#3c8aa0}.shift.s-c1{color:#5c8b8e}.shift.s-d{color:#c28b38}.shift.s-e{color:#76528b}.shift.s-h{color:#c35f88}
@@ -111,8 +114,7 @@ const SHIFT=[
 ];
 let view=new Date(2026,7,1),id=10,sid=20;
 let todos=[
-{id:1,title:'書類確認',start:'2026-08-01',end:'2026-08-05',color:0,done:false,subs:[
-{id:1,text:'記入漏れを確認',done:true},{id:2,text:'必要書類をそろえる',done:false}]},
+{id:1,title:'書類確認',start:'2026-08-01',end:'2026-08-05',color:0,done:false,subs:[{id:1,text:'記入漏れを確認',done:true},{id:2,text:'必要書類をそろえる',done:false}]},
 {id:2,title:'保育計画',start:'2026-08-03',end:'2026-08-07',color:1,done:false,subs:[]},
 {id:3,title:'運動会の準備',start:'2026-08-10',end:'2026-08-14',color:2,done:false,subs:[]},
 {id:4,title:'園だより作成',start:'2026-08-18',end:'2026-08-21',color:3,done:false,subs:[]}
@@ -127,10 +129,74 @@ function save(){localStorage.setItem('monthlyTodo',JSON.stringify({todos,shifts}
 function load(){try{const x=JSON.parse(localStorage.getItem('monthlyTodo'));if(Array.isArray(x))todos=x;else if(x&&Array.isArray(x.todos)){todos=x.todos;shifts=x.shifts||{}}}catch(e){}}
 function shiftInfo(v){return SHIFT.find(s=>s[0]===v)||SHIFT[0]}
 
+/* 日本の祝日・国民の休日・振替休日 */
+function japaneseHolidays(year){
+const h=new Map();
+const add=(m,d,name)=>h.set(year+'-'+pad(m)+'-'+pad(d),name);
+const nthMonday=(month,n)=>{
+let d=new Date(year,month-1,1);
+return 1+((8-d.getDay())%7)+(n-1)*7;
+};
+add(1,1,'元日');
+add(1,nthMonday(1,2),'成人の日');
+add(2,11,'建国記念の日');
+add(2,23,'天皇誕生日');
+const spring=Math.floor(20.8431+0.242194*(year-1980)-Math.floor((year-1980)/4));
+const autumn=Math.floor(23.2488+0.242194*(year-1980)-Math.floor((year-1980)/4));
+add(3,spring,'春分の日');
+add(4,29,'昭和の日');
+add(5,3,'憲法記念日');
+add(5,4,'みどりの日');
+add(5,5,'こどもの日');
+add(7,nthMonday(7,3),'海の日');
+add(8,11,'山の日');
+add(9,nthMonday(9,3),'敬老の日');
+add(9,autumn,'秋分の日');
+add(10,nthMonday(10,2),'スポーツの日');
+add(11,3,'文化の日');
+add(11,23,'勤労感謝の日');
+
+/* 2020・2021年の東京大会特例 */
+if(year===2020){
+h.delete(year+'-07-20');h.delete(year+'-10-12');h.delete(year+'-08-11');
+add(7,23,'海の日');add(7,24,'スポーツの日');add(8,10,'山の日');
+}
+if(year===2021){
+h.delete(year+'-07-19');h.delete(year+'-10-11');h.delete(year+'-08-11');
+add(7,22,'海の日');add(7,23,'スポーツの日');add(8,8,'山の日');
+}
+
+/* 祝日に挟まれた平日＝国民の休日 */
+const base=new Set(h.keys());
+for(let m=1;m<=12;m++){
+let days=new Date(year,m,0).getDate();
+for(let d=2;d<days;d++){
+let k=year+'-'+pad(m)+'-'+pad(d);
+if(!base.has(k)&&base.has(year+'-'+pad(m)+'-'+pad(d-1))&&base.has(year+'-'+pad(m)+'-'+pad(d+1))){
+h.set(k,'国民の休日');
+}
+}
+}
+
+/* 日曜日の祝日＝次の平日を振替休日 */
+for(const [k] of [...h]){
+let d=new Date(k+'T00:00:00');
+if(d.getDay()!==0)continue;
+d.setDate(d.getDate()+1);
+while(h.has(d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())))d.setDate(d.getDate()+1);
+h.set(d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),'振替休日');
+}
+return h;
+}
+
 function render(){
-let y=view.getFullYear(),m=view.getMonth();month.textContent=y+'年 '+(m+1)+'月';weeks.innerHTML='';
+let y=view.getFullYear(),m=view.getMonth();
+month.textContent=y+'年 '+(m+1)+'月';
+weeks.innerHTML='';
 let first=(new Date(y,m,1).getDay()+6)%7,last=new Date(y,m+1,0).getDate(),rows=Math.ceil((first+last)/7);
-let now=new Date(),today=key(now.getFullYear(),now.getMonth(),now.getDate());
+let now=new Date(),today=key(now.getFullYear(),now.getMonth(),now.getDate()),holidays={};
+for(let yy=y-1;yy<=y+1;yy++)holidays[yy]=japaneseHolidays(yy);
+
 for(let w=0;w<rows;w++){
 let wk=document.createElement('div');wk.className='week';
 let ds=document.createElement('div');ds.className='days';let cells=[];
@@ -138,106 +204,120 @@ for(let c=0;c<7;c++){
 let n=w*7+c-first+1,yy=y,mm=m,dd=n,other=false;
 if(n<1){mm--;dd=new Date(y,m,0).getDate()+n;other=true;if(mm<0){mm=11;yy--}}
 if(n>last){mm++;dd=n-last;other=true;if(mm>11){mm=0;yy++}}
-let k=key(yy,mm,dd),cell=document.createElement('div');cell.className='day '+(other?'other ':'')+(k===today?'today':'');
+let k=key(yy,mm,dd),holiday=holidays[yy].get(k);
+let cell=document.createElement('div');
+cell.className='day '+(other?'other ':'')+(k===today?'today ':'')+(holiday?'holiday':'');
 cell.onclick=()=>openDay(k);
-let num=document.createElement('div');num.className='num '+(c===5?'sat ':'')+(c===6?'sun':'');num.textContent=dd;cell.appendChild(num);
+let num=document.createElement('div');
+num.className='num '+(c===5?'sat ':'')+(c===6?'sun':'');
+num.textContent=dd;
+if(holiday)num.title=holiday;
+cell.appendChild(num);
 let sv=shifts[k];
 if(sv){let si=shiftInfo(sv),s=document.createElement('div');s.className='shift s-'+si[2];s.textContent=si[1];cell.appendChild(s)}
 cells.push(cell);ds.appendChild(cell)
 }
 wk.appendChild(ds);
+
 let ws=new Date(y,m,w*7-first+1),we=new Date(y,m,w*7-first+7);
 let wsk=key(ws.getFullYear(),ws.getMonth(),ws.getDate()),wek=key(we.getFullYear(),we.getMonth(),we.getDate());
 let pieces=[],lanes=[];
 todos.filter(t=>t.title&&t.title.trim()).forEach(t=>{
 if(dt(t.end)<dt(wsk)||dt(t.start)>dt(wek))return;
 let s=dt(t.start)>dt(wsk)?t.start:wsk,e=dt(t.end)<dt(wek)?t.end:wek,sc=diff(wsk,s),ec=diff(wsk,e),lane=0;
-while(lanes[lane]!=null&&lanes[lane]>=sc)lane++;lanes[lane]=ec;
+while(lanes[lane]!=null&&lanes[lane]>=sc)lane++;
+lanes[lane]=ec;
 pieces.push({t,sc,ec,lane,s:t.start===s,e:t.end===e});
 });
-let many=pieces.length>=3;cells.forEach(c=>{if(many)c.classList.add('has-many')});
+let many=pieces.length>=3;
+cells.forEach(c=>{if(many)c.classList.add('has-many')});
 let bs=document.createElement('div');bs.className='bars';
 pieces.forEach(p=>{
-let b=document.createElement('button');b.className='bar '+(p.s?'start ':'')+(p.e?'end ':'')+(p.t.done?'done ':'')+(many?'compact':'');
-b.style.background=C[p.t.color];b.style.setProperty('--c',C[p.t.color]);
-b.style.left=(p.sc*100/7+0.5)+'%';b.style.width=(p.ec-p.sc+1)*100/7-1+'%';b.style.top=(30+p.lane*(many?21:27))+'px';
+let b=document.createElement('button');
+b.className='bar '+(p.s?'start ':'')+(p.e?'end ':'')+(p.t.done?'done ':'')+(many?'compact':'');
+b.style.background=C[p.t.color];
+b.style.setProperty('--c',C[p.t.color]);
+b.style.left=(p.sc*100/7+0.5)+'%';
+b.style.width=(p.ec-p.sc+1)*100/7-1+'%';
+b.style.top=(30+p.lane*(many?21:27))+'px';
 let l=document.createElement('span');l.className='label';l.textContent=p.s?p.t.title:'';b.appendChild(l);
-b.onclick=e=>{e.stopPropagation();open(p.t)};bs.appendChild(b)
+b.onclick=e=>{e.stopPropagation();open(p.t)};
+bs.appendChild(b)
 });
 wk.appendChild(bs);weeks.appendChild(wk)
 }
 }
 
-function openDay(selected){
-// 日付タップは常に「新規予定」の追加。既存予定があっても編集には飛ばない。
-open(null,selected)
-}
+function openDay(selected){open(null,selected)}
 
 function open(t,selected){
 let edit=!!t,base=selected||(t?t.start:key(view.getFullYear(),view.getMonth(),1));
-// 新規予定は、その日の既存シフトを引き継ぐ。シフトは1日1つだけ。
 let shiftDate=selected||base;
-modal.innerHTML=
-'<div class="modalbg"><form class="modal"><h2>'+(edit?'Todoを編集':'Todoを追加')+'</h2>'+ 
-'<div class="field"><label>予定</label><div class="title-row"><input id="done" type="checkbox"><input id="title" type="text" maxlength="50" placeholder="予定を入力してください"></div></div>'+ 
-'<div class="subs"><div class="subhead"><span>サブタスク</span><button type="button" class="subadd" id="sa">＋追加</button></div><div id="sl"></div><div class="subinput" id="si" style="display:none"><input id="sn" placeholder="サブタスクを入力"><button type="button" id="ss">追加</button></div></div>'+ 
-'<div class="field"><label>開始日</label><input id="start" type="date"></div>'+ 
-'<div class="field"><label>終了日</label><input id="end" type="date"></div>'+ 
-'<div class="field"><label>色</label><div class="colors" id="colors"></div></div>'+ 
-'<div class="field"><label>シフト</label><div class="shifts" id="shifts"></div></div>'+ 
+modal.innerHTML='<div class="modalbg"><form class="modal"><h2>'+(edit?'Todoを編集':'Todoを追加')+'</h2>'+
+'<div class="field"><label>予定</label><div class="title-row"><input id="done" type="checkbox"><input id="title" type="text" maxlength="50" placeholder="予定を入力してください"></div></div>'+
+'<div class="subs"><div class="subhead"><span>サブタスク</span><button type="button" class="subadd" id="sa">＋追加</button></div><div id="sl"></div><div class="subinput" id="si" style="display:none"><input id="sn" placeholder="サブタスクを入力"><button type="button" id="ss">追加</button></div></div>'+
+'<div class="field"><label>開始日</label><input id="start" type="date"></div>'+
+'<div class="field"><label>終了日</label><input id="end" type="date"></div>'+
+'<div class="field"><label>色</label><div class="colors" id="colors"></div></div>'+
+'<div class="field"><label>シフト</label><div class="shifts" id="shifts"></div></div>'+
 '<div class="actions">'+(edit?'<button type="button" class="delete" id="del">削除</button>':'')+'<button type="button" id="cancel">キャンセル</button><button class="save">保存</button></div></form></div>';
-let title=document.getElementById('title'),done=document.getElementById('done'),start=document.getElementById('start'),end=document.getElementById('end'),sl=document.getElementById('sl'),si=document.getElementById('si'),sn=document.getElementById('sn'),col=document.getElementById('colors'),shiftsEl=document.getElementById('shifts');
+
+let title=document.getElementById('title'),done=document.getElementById('done'),start=document.getElementById('start'),end=document.getElementById('end'),
+sl=document.getElementById('sl'),si=document.getElementById('si'),sn=document.getElementById('sn'),col=document.getElementById('colors'),shiftsEl=document.getElementById('shifts');
+
 title.value=t?t.title:'';done.checked=t?t.done:false;start.value=t?t.start:base;end.value=t?t.end:base;
 let subs=t?(t.subs||[]).map(x=>({...x})):[],color=t&&typeof t.color==='number'?t.color:0,shift=t?(shifts[t.start]||''):(shifts[shiftDate]||'');
+
 function draw(){
 sl.innerHTML='';
 if(!subs.length){sl.innerHTML='<small style="color:#999">サブタスクはありません</small>';return}
-subs.forEach(s=>{let row=document.createElement('div');row.className='subrow '+(s.done?'done':'');let cb=document.createElement('input');cb.type='checkbox';cb.checked=!!s.done;cb.onchange=()=>{s.done=cb.checked;row.classList.toggle('done',s.done)};let sp=document.createElement('span');sp.textContent=s.text;let d=document.createElement('button');d.type='button';d.className='subdel';d.textContent='×';d.onclick=()=>{subs=subs.filter(x=>x.id!==s.id);draw()};row.append(cb,sp,d);sl.appendChild(row)})
+subs.forEach(s=>{
+let row=document.createElement('div');row.className='subrow '+(s.done?'done':'');
+let cb=document.createElement('input');cb.type='checkbox';cb.checked=!!s.done;cb.onchange=()=>{s.done=cb.checked;row.classList.toggle('done',s.done)};
+let sp=document.createElement('span');sp.textContent=s.text;
+let d=document.createElement('button');d.type='button';d.className='subdel';d.textContent='×';d.onclick=()=>{subs=subs.filter(x=>x.id!==s.id);draw()};
+row.append(cb,sp,d);sl.appendChild(row)
+})
 }
 draw();
-C.forEach((c,i)=>{let b=document.createElement('button');b.type='button';b.className='color '+(i===color?'sel':'');b.style.background=c;b.onclick=()=>{color=i;col.querySelectorAll('.color').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};col.appendChild(b)});
-SHIFT.forEach(s=>{let b=document.createElement('button');b.type='button';b.className='shiftopt sopt-'+s[2]+' '+(s[2]==='none'?'none ':'')+(s[0]===shift?'sel':'');b.textContent=s[1];b.onclick=()=>{shift=s[0];shiftsEl.querySelectorAll('.shiftopt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};shiftsEl.appendChild(b)});
+
+C.forEach((c,i)=>{
+let b=document.createElement('button');b.type='button';b.className='color '+(i===color?'sel':'');b.style.background=c;
+b.onclick=()=>{color=i;col.querySelectorAll('.color').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};
+col.appendChild(b)
+});
+
+SHIFT.forEach(s=>{
+let b=document.createElement('button');b.type='button';
+b.className='shiftopt sopt-'+s[2]+' '+(s[2]==='none'?'none ':'')+(s[0]===shift?'sel':'');
+b.textContent=s[1];
+b.onclick=()=>{shift=s[0];shiftsEl.querySelectorAll('.shiftopt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};
+shiftsEl.appendChild(b)
+});
+
 document.getElementById('sa').onclick=()=>{si.style.display='flex';sn.focus()};
 document.getElementById('ss').onclick=()=>{if(sn.value.trim()){subs.push({id:sid++,text:sn.value.trim(),done:false});sn.value='';si.style.display='none';draw()}};
 document.getElementById('cancel').onclick=()=>modal.innerHTML='';
 modal.querySelector('.modalbg').onclick=e=>{if(e.target===e.currentTarget)modal.innerHTML=''};
+
 if(edit)document.getElementById('del').onclick=()=>{todos=todos.filter(x=>x.id!==t.id);save();modal.innerHTML='';render()};
+
 modal.querySelector('form').onsubmit=e=>{
 e.preventDefault();
-
 let v=title.value.trim();
-
 if(!start.value||!end.value||end.value<start.value)return;
-
 if(v){
 if(t){
-t.title=v;
-t.done=done.checked;
-t.start=start.value;
-t.end=end.value;
-t.color=color;
-t.subs=subs;
+t.title=v;t.done=done.checked;t.start=start.value;t.end=end.value;t.color=color;t.subs=subs;
 }else{
-todos.push({
-id:id++,
-title:v,
-start:start.value,
-end:end.value,
-color,
-done:done.checked,
-subs
-});
+todos.push({id:id++,title:v,start:start.value,end:end.value,color,done:done.checked,subs});
+}
+}
+if(shift)shifts[shiftDate]=shift;else delete shifts[shiftDate];
+save();modal.innerHTML='';render();
 }
 }
 
-if(shift)shifts[shiftDate]=shift;
-else delete shifts[shiftDate];
-
-save();
-modal.innerHTML='';
-render();
-}
-}
 load();
 document.getElementById('prev').onclick=()=>{view.setMonth(view.getMonth()-1);render()};
 document.getElementById('next').onclick=()=>{view.setMonth(view.getMonth()+1);render()};
