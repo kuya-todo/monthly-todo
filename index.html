@@ -33,7 +33,7 @@ button{font:inherit;cursor:pointer}
 .holiday .num{color:#d84a42}
 .today .num{background:#686d66;color:#fff;border-radius:50%;width:23px;height:23px;justify-content:center}
 .today.holiday .num{background:#d84a42;color:#fff}
-.shift{position:absolute;top:4px;right:4px;z-index:11;width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;line-height:1;white-space:nowrap;letter-spacing:0;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.shift{position:absolute;top:4px;right:4px;z-index:11;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;line-height:1;white-space:nowrap;letter-spacing:0;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .shift.s-none{display:none}
 .shift.s-a{color:#fff;background:#5d8fca}.shift.s-b{color:#fff;background:#5c9aa9}.shift.s-c1{color:#fff;background:#6ba4a8}.shift.s-d{color:#fff;background:#c99a4d}.shift.s-e{color:#fff;background:#8264a0}.shift.s-h{color:#fff;background:#d2779b}
 .shift.s-week,.shift.s-furi{color:#fff;background:#68a07a}.shift.s-depart{color:#fff;background:#b48a4f}.shift.s-work{color:#fff;background:#b86666}.shift.s-off{color:#fff;background:#888}
@@ -80,10 +80,11 @@ button{font:inherit;cursor:pointer}
 .day,.days,.week{height:150px;min-height:150px}.day{padding:5px 4px}
 .bar{height:21px;line-height:21px;font-size:9px;padding-left:6px}
 .bar.end{padding-right:18px;clip-path:polygon(0 0,calc(100% - 13px) 0,100% 50%,calc(100% - 13px) 100%,0 100%)}
-.bar.single{padding-right:6px;clip-path:none}
+.bar.single{padding-right:6px;clip-path:none!important;border-radius:5px!important}
 .bar.compact,.day.has-many .bar{height:17px;line-height:17px;font-size:7.5px}
 .bar.compact.end,.day.has-many .bar.end{padding-right:15px;clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%)}
-.weekhead div{font-size:10px}.shift{width:25px;height:25px;font-size:10px;right:4px;top:4px}
+.bar.compact.single,.day.has-many .bar.single{padding-right:6px;clip-path:none!important;border-radius:5px!important}
+.weekhead div{font-size:10px}.shift{width:22px;height:22px;font-size:12px;right:4px;top:4px}
 }
 </style>
 </head>
