@@ -25,7 +25,7 @@ button{font:inherit;cursor:pointer}
 .week{position:relative;border-bottom:1px solid #ddd7cf;height:140px;min-height:140px}
 .week:last-child{border:0}
 .days{height:140px;min-height:140px}
-.day{height:140px;border-right:1px solid #ddd7cf;position:relative;padding:5px 6px;cursor:pointer}
+.day{height:140px;min-height:140px;overflow:hidden;border-right:1px solid #ddd7cf;position:relative;padding:5px 6px;cursor:pointer}
 .day:last-child{border:0}
 .other{background:#faf8f3}
 .num{font-size:12px;font-weight:600;position:relative;z-index:10;display:flex;align-items:center;min-height:23px}
@@ -77,7 +77,7 @@ button{font:inherit;cursor:pointer}
 .save{background:#626960!important;color:white;border-color:#626960!important}.delete{margin-right:auto;color:#a05f59!important;border-color:#e0c8c3!important}
 @media(max-width:650px){
 .app{padding:10px 5px}h1{font-size:20px}
-.day,.days,.week{height:140px;min-height:140px}.day{padding:5px 4px}
+.day,.days,.week{height:140px!important;min-height:140px!important}.day{padding:5px 4px}
 .bar{height:21px;line-height:21px;font-size:9px;padding-left:6px}
 .bar.end{padding-right:18px;clip-path:polygon(0 0,calc(100% - 13px) 0,100% 50%,calc(100% - 13px) 100%,0 100%)}
 .bar.single{padding-right:6px;clip-path:none!important;border-radius:5px!important}
