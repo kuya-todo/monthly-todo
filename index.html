@@ -25,7 +25,7 @@ button{font:inherit;cursor:pointer}
 .week{position:relative;border-bottom:1px solid #ddd7cf;height:140px;min-height:140px}
 .week:last-child{border:0}
 .days{height:140px;min-height:140px}
-.day{height:150px;border-right:1px solid #ddd7cf;position:relative;padding:5px 6px;cursor:pointer}
+.day{height:140px;border-right:1px solid #ddd7cf;position:relative;padding:5px 6px;cursor:pointer}
 .day:last-child{border:0}
 .other{background:#faf8f3}
 .num{font-size:12px;font-weight:600;position:relative;z-index:10;display:flex;align-items:center;min-height:23px}
@@ -105,17 +105,18 @@ button{font:inherit;cursor:pointer}
 <script>
 (()=>{
 const weeks=document.getElementById('weeks'),month=document.getElementById('month'),modal=document.getElementById('modal');
-const C=['#ded3c3','#c9d9ca','#cbd9e5','#e9a8b2','#f1d18a','#d9d1df'];
+/* 色順：赤・ベージュ・青・緑・黄・紫 */
+const C=['#e9a8b2','#ded3c3','#cbd9e5','#c9d9ca','#f1d18a','#d9d1df'];
 const SHIFT=[
 ['','なし','none'],['A','A','a'],['B','B','b'],['C1','C1','c1'],['D','D','d'],['E','E','e'],['H','H','h'],
 ['週','週','week'],['振','振','furi'],['出','出','depart'],['勤','勤','work'],['休','休','off']
 ];
 let view=new Date(2026,7,1),id=10,sid=20;
 let todos=[
-{id:1,title:'書類確認',start:'2026-08-01',end:'2026-08-05',color:0,done:false,subs:[{id:1,text:'記入漏れを確認',done:true},{id:2,text:'必要書類をそろえる',done:false}]},
-{id:2,title:'保育計画',start:'2026-08-03',end:'2026-08-07',color:1,done:false,subs:[]},
+{id:1,title:'書類確認',start:'2026-08-01',end:'2026-08-05',color:1,done:false,subs:[{id:1,text:'記入漏れを確認',done:true},{id:2,text:'必要書類をそろえる',done:false}]},
+{id:2,title:'保育計画',start:'2026-08-03',end:'2026-08-07',color:3,done:false,subs:[]},
 {id:3,title:'運動会の準備',start:'2026-08-10',end:'2026-08-14',color:2,done:false,subs:[]},
-{id:4,title:'園だより作成',start:'2026-08-18',end:'2026-08-21',color:3,done:false,subs:[]}
+{id:4,title:'園だより作成',start:'2026-08-18',end:'2026-08-21',color:0,done:false,subs:[]}
 ];
 let shifts={"2026-08-03":"A","2026-08-18":"H"};
 
